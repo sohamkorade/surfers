@@ -1,36 +1,35 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'OrbitControls'
 
+const MAX_TRAINS = 2
+const CHEATS = true
+const PLAYER_HEIGHT = 0.5
+
+const renderer = new THREE.WebGLRenderer()
+renderer.setSize(window.innerWidth, window.innerHeight)
+document.body.appendChild(renderer.domElement)
+
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 
 camera.position.y = 2
 camera.position.z = 3
 
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-
-const clock = new THREE.Clock()
-
 // orbit control
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.update()
 
+const clock = new THREE.Clock()
+
 const tracks = []
-
-const max_trains = 2
-
 const trains = []
-
-const GROUND_HEIGHT = 0.2
 
 const player = {
 	mesh: null,
 	track: null,
 	velocity: new THREE.Vector3(0, 0, 0),
 	switching_track: false,
-	platform_height: GROUND_HEIGHT,
+	platform_height: 0,
 	alive: true,
 	ducking: false,
 	jumping: false,
@@ -66,7 +65,7 @@ function gen_train() {
 				new THREE.BoxGeometry(1, 2, 0.2),
 				new THREE.MeshBasicMaterial({ color: 'orange' }),
 			),
-			position: new THREE.Vector3(0, GROUND_HEIGHT + 1.1, 0),
+			position: new THREE.Vector3(0, 0 + 1.1, 0),
 		},
 		{
 			name: 'barrier_jump_or_duck',
@@ -74,7 +73,7 @@ function gen_train() {
 				new THREE.BoxGeometry(1, 0.5, 0.2),
 				new THREE.MeshBasicMaterial({ color: 'yellow' }),
 			),
-			position: new THREE.Vector3(0, GROUND_HEIGHT+0.5, 0),
+			position: new THREE.Vector3(0, 0 + 0.5, 0),
 		},
 		{
 			name: 'barrier_duck',
@@ -82,7 +81,7 @@ function gen_train() {
 				new THREE.BoxGeometry(1, 1, 0.2),
 				new THREE.MeshBasicMaterial({ color: 'pink' }),
 			),
-			position: new THREE.Vector3(0, GROUND_HEIGHT + 0.7, 0),
+			position: new THREE.Vector3(0, 0 + 0.7, 0),
 		},
 		{
 			name: 'train',
@@ -90,7 +89,7 @@ function gen_train() {
 				new THREE.BoxGeometry(1, 1, train_length),
 				new THREE.MeshBasicMaterial({ color: 'brown' }),
 			),
-			position: new THREE.Vector3(0, GROUND_HEIGHT, 0),
+			position: new THREE.Vector3(0, 0, 0),
 		},
 	]
 
@@ -118,11 +117,11 @@ function gen_train() {
 
 
 function update_trains() {
-	if (trains.length < max_trains) {
+	if (trains.length < MAX_TRAINS) {
 		gen_train()
 	}
 
-	player.platform_height = GROUND_HEIGHT
+	player.platform_height = 0
 	const player_bottom = player.mesh.position.y - player.mesh.geometry.parameters.height / 2
 	const player_front = player.mesh.position.z + player.mesh.geometry.parameters.depth / 2
 	// set color to blue
@@ -152,30 +151,31 @@ function update_trains() {
 
 		// box collision
 		if (new THREE.Box3().setFromObject(player.mesh).intersectsBox(new THREE.Box3().setFromObject(train))) {
-			// dead
-			player.alive = false
+			if (!CHEATS) {
+				player.alive = false
+			}
 			player.mesh.material.color.set('red')
 		}
 
 		// if player is on top of the train
 		if (player.track_id == train.userData.track_id
-			&& player_bottom > train_top
-			&& train_front > player_front
-			&& train_back < player_front
+			&& player_bottom >= train_top
+			&& train_front >= player_front
+			&& train_back <= player_front
 		) {
 			player.mesh.material.color.set('green')
-			player.platform_height = train_top + GROUND_HEIGHT
+			player.platform_height = train_top + 0
 		}
 	}
 	// console.log(player.platform_height, player.mesh.position.y)
 }
 
 function add_player() {
-	const player_geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
-	player.mesh = new THREE.Mesh(player_geometry, new THREE.MeshBasicMaterial({ color: 'blue' }))
+	player.mesh = new THREE.Mesh(
+		new THREE.BoxGeometry(PLAYER_HEIGHT, PLAYER_HEIGHT, PLAYER_HEIGHT),
+		new THREE.MeshBasicMaterial({ color: 'blue' }),
+	)
 	scene.add(player.mesh)
-
-	player.mesh.position.y = 0.3
 
 	// put it on a random track
 	player.track_id = Math.floor(Math.random() * tracks.length)
@@ -237,13 +237,13 @@ function update_player() {
 
 	player.mesh.position.y -= (1 - player.mesh.scale.y) / 2.5
 	// landing
-	if (player.mesh.position.y <= player.platform_height) {
+	if (is_on_ground(player.mesh, player.platform_height)) {
 		player.jumping = false
 		set_bottom(player.mesh, player.platform_height)
 		player.velocity.y = 0
 	}
 
-	console.log(player.ducking, player.jumping)
+	// console.log(player.ducking, player.jumping)
 
 	// track switching
 	if (player.switching_track) {
@@ -287,7 +287,11 @@ function player_duck() {
 }
 
 function set_bottom(obj, y) {
-	obj.position.y = y
+	obj.position.y = y + obj.geometry.parameters.height / 2
+}
+
+function is_on_ground(obj, ground = 0) {
+	return obj.position.y <= ground + obj.geometry.parameters.height / 2
 }
 
 
@@ -320,6 +324,12 @@ document.addEventListener('keydown', (event) => {
 			window.location.reload()
 			break
 	}
+})
+
+window.addEventListener('resize', () => {
+	renderer.setSize(window.innerWidth, window.innerHeight)
+	camera.aspect = window.innerWidth / window.innerHeight
+	camera.updateProjectionMatrix()
 })
 
 gen_tracks()
