@@ -261,18 +261,20 @@ function update_player() {
 	}
 }
 
+
 function player_jump() {
 	// check if we are on the ground
 	if (!player.jumping) {
-		// reset ducking
-		player.mesh.scale.y = 1
-		// player.mesh.position.y = player.platform_height
-
-		player.ducking = false
+		player_unduck()
 
 		player.jumping = true
 		player.velocity.y = 5
 	}
+}
+
+function player_unjump() {
+	player.jumping = false
+	player.velocity.y = 0
 }
 
 function player_duck() {
@@ -284,6 +286,11 @@ function player_duck() {
 			player.velocity.y -= 0.1
 		}
 	}
+}
+
+function player_unduck() {
+	player.mesh.scale.y = 1
+	player.ducking = false
 }
 
 function set_bottom(obj, y) {
@@ -326,13 +333,17 @@ document.addEventListener('keydown', (event) => {
 	}
 })
 
-window.addEventListener('resize', () => {
-	renderer.setSize(window.innerWidth, window.innerHeight)
-	camera.aspect = window.innerWidth / window.innerHeight
-	camera.updateProjectionMatrix()
-})
+document.addEventListener('keyup', (event) => {
+	switch (event.key) {
+		case ''
 
-gen_tracks()
-gen_train()
-add_player()
-animate()
+window.addEventListener('resize', () => {
+			renderer.setSize(window.innerWidth, window.innerHeight)
+			camera.aspect = window.innerWidth / window.innerHeight
+			camera.updateProjectionMatrix()
+		})
+
+			gen_tracks()
+			gen_train()
+			add_player()
+			animate()
