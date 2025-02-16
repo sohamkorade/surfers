@@ -2,7 +2,10 @@
 
 A 3D endless runner game inspired by Subway Surfers, built with Three.js.
 
-UNDER CONSTRUCTION
+🚧 UNDER CONSTRUCTION 🚧
+
+<!-- screenshot -->
+<img src="screenshot.png" alt="screenshot" width="300">
 
 ## Features
 
@@ -54,3 +57,7 @@ Mobile users can use swipe gestures:
 	- `trains.js` - Train logic
 	- `world.js` - Game state and configuration
 - `assets/` - 3D models, textures, and other assets
+
+## How to run
+
+Just open the `index.html` via a local server.
